@@ -27,7 +27,7 @@ const Results = ({ result }: { result: ChallengeResult }) => {
   const total = stars.reduce((a, b) => a + b, 0);
   return (
     <div className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
-      <div className="text-[4vmin] font-extrabold">
+      <div className="text-[length:4dvmin] font-extrabold">
         {total} <span className="text-muted-foreground">/ {stars.length * 3} stars</span>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -43,11 +43,11 @@ const Results = ({ result }: { result: ChallengeResult }) => {
 };
 
 const ChallengeSetup = ({ bpm, onBpm, counts, onCounts, click, onClick, result, onStart }: Props) => (
-  <div className="flex flex-1 flex-col gap-[3vh]">
+  <div className="flex flex-1 flex-col gap-[2dvh]">
     {result ? (
       <Results result={result} />
     ) : (
-      <p className="max-w-xl text-[2.6vmin] leading-snug text-muted-foreground">
+      <p className="max-w-xl text-[length:2.6dvmin] leading-snug text-muted-foreground">
         Eight random targets, from <i className="font-dynamic">pp</i> to <i className="font-dynamic">ff</i>. Each one
         lasts {counts} counts. Watch for <b className="text-foreground">next</b> and switch on the first count. Up to 3
         stars per target.

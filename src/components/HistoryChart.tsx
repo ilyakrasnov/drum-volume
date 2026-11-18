@@ -43,7 +43,7 @@ const HistoryChart = ({ history, now, seconds = 20 }: Props) => {
     }
   });
 
-  return <canvas ref={canvas} className="min-h-20 w-full flex-1 rounded-xl border bg-card" />;
+  return <canvas ref={canvas} className="min-h-16 w-full flex-1 rounded-xl border bg-card" />;
 };
 
 export default HistoryChart;

@@ -23,19 +23,19 @@ const ChallengeLive = ({ moment, target, next, counts, seq, scores, onStop }: Pr
   const warn = next && beatsLeft <= WARN_BEATS;
 
   return (
-    <div className="flex flex-1 flex-col gap-[3vh]">
+    <div className="flex flex-1 flex-col gap-[2dvh]">
       <div className="flex items-end gap-[4vw]">
         <div>
-          <div className="text-[2.4vmin] text-muted-foreground">{countIn ? "get ready" : "play"}</div>
-          <div className="pl-[2vmin] font-dynamic text-[18vmin] font-bold italic leading-none text-zone-ok">
+          <div className="text-[length:2.4dvmin] text-muted-foreground">{countIn ? "get ready" : "play"}</div>
+          <div className="pl-[2dvmin] font-dynamic text-[length:16dvmin] font-bold italic leading-none text-zone-ok">
             {countIn ? beat : target.name}
           </div>
         </div>
-        <div className={cn("pb-[2vmin] transition-opacity", warn ? "opacity-100" : "opacity-30")}>
-          <div className="text-[2.4vmin] text-muted-foreground">{countIn ? "first" : "next"}</div>
+        <div className={cn("pb-[2dvmin] transition-opacity", warn ? "opacity-100" : "opacity-30")}>
+          <div className="text-[length:2.4dvmin] text-muted-foreground">{countIn ? "first" : "next"}</div>
           <div className="flex items-baseline gap-3">
-            <span className="font-dynamic text-[10vmin] font-bold italic leading-none">{next?.name ?? "end"}</span>
-            {warn && <span className="text-[6vmin] font-extrabold tabular-nums text-warn">{beatsLeft}</span>}
+            <span className="font-dynamic text-[length:10dvmin] font-bold italic leading-none">{next?.name ?? "end"}</span>
+            {warn && <span className="text-[length:6dvmin] font-extrabold tabular-nums text-warn">{beatsLeft}</span>}
           </div>
         </div>
       </div>
@@ -45,7 +45,7 @@ const ChallengeLive = ({ moment, target, next, counts, seq, scores, onStop }: Pr
           <div
             key={i}
             className={cn(
-              "h-[3vmin] flex-1 rounded-full border",
+              "h-[3dvmin] flex-1 rounded-full border",
               i < beat ? (countIn ? "bg-warn" : "bg-zone-ok") : "bg-card",
               i === beat - 1 && "scale-y-125",
             )}

@@ -45,7 +45,7 @@ const Index = () => {
   };
 
   return (
-    <div className="absolute inset-0 grid grid-cols-[minmax(180px,30vw)_1fr] gap-[4vw] px-[max(4vw,env(safe-area-inset-left))] py-[max(3vh,env(safe-area-inset-top))]">
+    <div className="fixed inset-0 grid h-dvh grid-cols-[minmax(160px,28vw)_1fr] grid-rows-[minmax(0,1fr)] gap-[3vw] px-[max(3vw,env(safe-area-inset-left))] py-[max(2.5dvh,env(safe-area-inset-top))]">
       <VolumeMeter
         level={drum.level}
         peak={drum.peak}
@@ -53,16 +53,16 @@ const Index = () => {
         band={band}
         onBandChange={challenge.running ? () => {} : settings.setBand}
       />
-      <div className="flex min-w-0 flex-col gap-[3vh]">
+      <div className="flex min-h-0 min-w-0 flex-col gap-[2dvh] overflow-y-auto">
         <ModeSwitch mode={settings.mode} onChange={switchMode} />
         <LevelReadout level={drum.level} zone={drum.zone} paused={drum.paused} calibrateLeft={drum.calibrateLeft} />
         {settings.mode === "practice" ? (
           <>
             <ZoneStats score={drum.score} band={settings.band} />
             <HistoryChart history={drum.history} now={drum.t} />
-            <p className="min-h-[1.3em] font-bold text-warn">
-              {drum.clippedRecently && "The mic is maxed out. Move the iPad further from the drums."}
-            </p>
+            {drum.clippedRecently && (
+              <p className="font-bold text-warn">The mic is maxed out. Move the iPad further from the drums.</p>
+            )}
             <BandControls band={settings.band} onBandChange={settings.setBand} onCalibrate={drum.calibrate} />
             <SessionControls
               sensitivity={settings.sensitivity}
