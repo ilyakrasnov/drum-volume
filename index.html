@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1216">
+<title>Drum Volume</title>
+<style>
+  :root {
+    --soft: #2f6fdb; --ok: #1f9d55; --loud: #e0452b; --warn: #f5c542;
+    --bg: #0f1216; --panel: #1a1f26; --line: #2c333d; --text: #eef2f6; --muted: #8a94a3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  button { font: inherit; font-size: 17px; color: inherit; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 18px; cursor: pointer; }
+  button:active { transform: scale(.97); }
+  button.on { background: var(--text); color: var(--bg); }
+
+  .root { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(180px, 30vw) 1fr; gap: 4vw;
+    padding: max(4vh, env(safe-area-inset-top)) max(4vw, env(safe-area-inset-right)) max(3vh, env(safe-area-inset-bottom)) max(4vw, env(safe-area-inset-left)); }
+  .meterwrap { position: relative; display: flex; gap: 12px; }
+  .ticks { position: relative; width: 44px; }
+  .ticks span { position: absolute; right: 0; transform: translateY(50%); font-style: italic;
+    font-weight: 700; color: var(--muted); font-family: Georgia, serif; font-size: 20px; }
+  .meter { position: relative; flex: 1; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 16px; overflow: hidden; touch-action: none; cursor: ns-resize; }
+  .band { position: absolute; left: 0; right: 0; background: rgba(31,157,85,.22);
+    border-top: 3px solid var(--ok); border-bottom: 3px solid var(--ok); }
+  .fill { position: absolute; left: 14%; right: 14%; bottom: 0; border-radius: 10px 10px 0 0; pointer-events: none; }
+  .peak { position: absolute; left: 6%; right: 6%; height: 4px; background: var(--text); border-radius: 2px; pointer-events: none; }
+  .draghint { position: absolute; bottom: -2px; left: 56px; right: 0; text-align: center; font-size: 12px;
+    color: var(--muted); transform: translateY(100%); padding-top: 4px; }
+
+  .side { display: flex; flex-direction: column; gap: 3vh; min-width: 0; }
+  .top { display: flex; align-items: center; gap: 4vw; }
+  .num { font-size: 16vmin; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; min-width: 2ch; }
+  .dyn { font-family: Georgia, serif; font-style: italic; font-weight: 700; font-size: 9vmin; }
+  .hint { font-size: 3.4vmin; font-weight: 700; }
+  .stats { display: flex; gap: 3vw; align-items: center; }
+  .ring { width: 18vmin; height: 18vmin; border-radius: 50%; display: grid; place-items: center; flex: none; }
+  .ring div { width: 78%; height: 78%; border-radius: 50%; background: var(--bg); display: grid;
+    place-items: center; text-align: center; font-size: 4.5vmin; font-weight: 800; line-height: 1.1; }
+  .ring small { display: block; font-size: 1.8vmin; color: var(--muted); font-weight: 500; }
+  .stat { font-size: 2.2vmin; color: var(--muted); } .stat b { display: block; font-size: 5vmin; color: var(--text); }
+  .spark { width: 100%; flex: 1; min-height: 80px; max-height: 22vh; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls .lbl { color: var(--muted); font-size: 14px; margin: 0 4px 0 10px; }
+  .controls .gap { flex: 1; }
+  .grp { display: flex; gap: 8px; align-items: center; }
+  .sens { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+  .sens input { width: 180px; accent-color: var(--text); }
+  .warn { color: var(--warn); font-weight: 700; font-size: 15px; min-height: 1.3em; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(15,18,22,.96); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 22px; text-align: center; padding: 24px; z-index: 9; }
+  .overlay h1 { font-size: 44px; } .overlay p { color: var(--muted); max-width: 520px; font-size: 18px; line-height: 1.45; }
+  .overlay button { font-size: 24px; padding: 18px 40px; background: var(--ok); border: 0; color: #fff; }
+  .overlay .err { color: var(--loud); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="root">
+  <div class="meterwrap">
+    <div class="ticks" id="ticks"></div>
+    <div class="meter" id="meter"><div class="band" id="band"></div><div class="fill" id="fill"></div><div class="peak" id="peak"></div></div>
+    <div class="draghint">drag the green band to change the target</div>
+  </div>
+  <div class="side">
+    <div class="top"><div class="num" id="num">0</div>
+      <div><div class="dyn" id="dyn"></div><div class="hint" id="hint"></div></div></div>
+    <div class="stats">
+      <div class="ring" id="ring"><div><span id="pct">0%</span><small>in the zone</small></div></div>
+      <div class="stat">streak<b id="streak">0s</b></div><div class="stat">best<b id="best">0s</b></div>
+      <div class="stat">target<b id="target"></b></div>
+    </div>
+    <canvas class="spark" id="spark"></canvas>
+    <div class="warn" id="warn"></div>
+    <div class="controls">
+      <button data-p="Soft">Soft</button><button data-p="Medium">Medium</button><button data-p="Loud">Loud</button>
+      <button id="cal">Set my level</button>
+      <span class="grp"><span class="lbl">bottom</span><button data-d="low,-2">−</button><button data-d="low,2">+</button>
+        <span class="lbl">top</span><button data-d="high,-2">−</button><button data-d="high,2">+</button></span>
+    </div>
+    <div class="controls">
+      <label class="sens">mic sensitivity <input type="range" id="sens" min="0" max="30" step="1"></label>
+      <span class="gap"></span>
+      <span class="grp"><button id="pause">Pause</button><button id="reset">Reset score</button></span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <h1>Drum Volume</h1>
+  <p>Put the iPad where it can hear the whole kit, about 1–2 meters away. Play inside the green band.</p>
+  <button id="start">Start listening</button>
+  <p class="err" id="err" hidden></p>
+</div>
+
+<script>
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const DYN = [['pp', 18], ['p', 32], ['mp', 46], ['mf', 58], ['f', 70], ['ff', 84]];
+const dynName = lvl => DYN.reduce((best, d) => Math.abs(d[1] - lvl) < Math.abs(best[1] - lvl) ? d : best)[0];
+const PRESETS = { Soft: [26, 40], Medium: [50, 64], Loud: [66, 80] };
+const COLORS = { soft: '#2f6fdb', ok: '#1f9d55', loud: '#e0452b' };
+const DEMO = new URLSearchParams(location.search).has('demo');   // fake drummer, for trying it without a kit
+
+// ---------- settings that survive a reload ----------
+const STORE = 'drum-volume-v1';
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORE)) || {}; } catch {}
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ low: S.low, high: S.high, sens: S.sens })); } catch {} };
+
+const S = { low: saved.low ?? 50, high: saved.high ?? 64, sens: saved.sens ?? 6,
+  level: 0, peak: 0, t: 0, zone: 'ok', streak: 0, best: 0, outFor: 0, inZone: 0, total: 0,
+  calib: null, hist: [], clipAt: -99, paused: false };
+
+// ---------- microphone -> one smoothed loudness number, 0..100 ----------
+let actx, analyser, buf;
+async function startMic() {
+  if (!DEMO) {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = actx.createAnalyser(); analyser.fftSize = 2048;
+    buf = new Float32Array(analyser.fftSize);
+    actx.createMediaStreamSource(stream).connect(analyser);
+    await actx.resume();
+  }
+}
+
+function readRaw() {
+  if (DEMO) {
+    const t = S.t, c = (S.low + S.high) / 2 + 13 * Math.sin(t * .45) + 5 * Math.sin(t * 1.7);
+    return clamp(c - 8 + 16 * Math.exp(-((t * 8) % 1) * 6) + (Math.random() - .5) * 8, 0, 100);
+  }
+  analyser.getFloatTimeDomainData(buf);
+  let sum = 0, max = 0;
+  for (const v of buf) { sum += v * v; const a = Math.abs(v); if (a > max) max = a; }
+  if (max > .98) S.clipAt = S.t;
+  const db = 20 * Math.log10(Math.sqrt(sum / buf.length) + 1e-9);
+  const top = -S.sens;                                         // sensitivity moves the top of a 60 dB window
+  return clamp((db - (top - 60)) / 60 * 100, 0, 100);
+}
+
+function tick(dt) {
+  S.t += dt;
+  const raw = readRaw();
+  S.level += (raw - S.level) * (1 - Math.exp(-dt / .35));    // ~0.35 s smoothing
+  S.peak = Math.max(S.level, S.peak - dt * 15);
+  S.zone = S.level < S.low ? 'soft' : S.level > S.high ? 'loud' : 'ok';
+  if (S.paused) return;
+  S.total += dt;
+  if (S.zone === 'ok') { S.inZone += dt; S.streak += dt; S.outFor = 0; S.best = Math.max(S.best, S.streak); }
+  else if ((S.outFor += dt) > .6) S.streak = 0;                // short slips don't break the streak
+  S.hist.push({ t: S.t, l: S.level, z: S.zone, lo: S.low, hi: S.high });
+  while (S.hist.length && S.hist[0].t < S.t - 20) S.hist.shift();
+  if (S.calib) {
+    S.calib.sum += S.level * dt; S.calib.time += dt;
+    if (S.calib.time >= 3) {
+      const avg = S.calib.sum / S.calib.time;
+      setBand(Math.round(avg - 7), Math.round(avg + 7)); S.calib = null; resetScore();
+    }
+  }
+}
+
+// ---------- controls ----------
+function setBand(lo, hi) { S.low = clamp(lo, 0, 96); S.high = clamp(hi, S.low + 4, 100); save(); }
+function resetScore() { Object.assign(S, { streak: 0, best: 0, inZone: 0, total: 0, outFor: 0 }); }
+
+$('ticks').innerHTML = DYN.map(([n, v]) => `<span style="bottom:${v}%">${n}</span>`).join('');
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { setBand(...PRESETS[b.dataset.p]); resetScore(); });
+document.querySelectorAll('[data-d]').forEach(b => b.onclick = () => {
+  const [k, d] = b.dataset.d.split(',');
+  if (k === 'low') setBand(Math.min(S.low + +d, S.high - 4), S.high); else setBand(S.low, Math.max(S.high + +d, S.low + 4));
+});
+$('cal').onclick = () => { S.calib = { sum: 0, time: 0 }; };
+$('reset').onclick = () => { resetScore(); S.hist = []; };
+$('pause').onclick = () => { S.paused = !S.paused; $('pause').textContent = S.paused ? 'Resume' : 'Pause'; $('pause').classList.toggle('on', S.paused); };
+$('sens').value = S.sens;
+$('sens').oninput = e => { S.sens = +e.target.value; save(); };
+
+// drag the band on the meter: grab an edge to stretch it, grab the middle to move it
+let drag = null;
+const valAt = e => { const r = $('meter').getBoundingClientRect(); return clamp((r.bottom - e.clientY) / r.height * 100, 0, 100); };
+function applyDrag(v) {
+  if (drag.mode === 'move') { const lo = clamp(Math.round(v - drag.off), 0, 100 - drag.w); setBand(lo, lo + drag.w); }
+  else if (drag.mode === 'low') setBand(Math.min(Math.round(v), S.high - 4), S.high);
+  else setBand(S.low, Math.max(Math.round(v), S.low + 4));
+}
+$('meter').onpointerdown = e => {
+  $('meter').setPointerCapture(e.pointerId);
+  const v = valAt(e), dl = Math.abs(v - S.low), dh = Math.abs(v - S.high);
+  drag = v > S.low && v < S.high && Math.min(dl, dh) > 4 ? { mode: 'move', off: v - S.low, w: S.high - S.low }
+    : { mode: dl < dh ? 'low' : 'high' };
+  applyDrag(v);
+};
+$('meter').onpointermove = e => { if (drag) applyDrag(valAt(e)); };
+$('meter').onpointerup = $('meter').onpointercancel = () => { if (drag) { drag = null; resetScore(); } };
+
+// keep the screen on while he plays, and wake audio back up after switching apps
+let wake = null;
+async function keepAwake() { try { wake = await navigator.wakeLock?.request('screen'); } catch {} }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && $('overlay').hidden) { keepAwake(); actx?.resume(); }
+});
+
+$('start').onclick = async () => {
+  try {
+    await startMic();
+    $('overlay').hidden = true; keepAwake();
+    let last = performance.now();
+    requestAnimationFrame(function frame(now) {
+      const dt = Math.min(.1, (now - last) / 1000); last = now;
+      tick(dt); render(); requestAnimationFrame(frame);
+    });
+  } catch (err) {
+    $('err').hidden = false;
+    $('err').textContent = !window.isSecureContext
+      ? 'The mic only works when this page is opened from an https:// address.'
+      : 'The mic is blocked. On iPad: Settings › Safari › Microphone › Allow, then reload this page.';
+    console.warn(err);
+  }
+};
+
+if (DEMO) $('start').click();
+
+// ---------- drawing ----------
+function render() {
+  const col = COLORS[S.zone];
+  Object.assign($('band').style, { bottom: S.low + '%', height: (S.high - S.low) + '%' });
+  Object.assign($('fill').style, { height: S.level + '%', background: col });
+  $('peak').style.bottom = S.peak + '%';
+  $('num').textContent = S.level.toFixed(0); $('num').style.color = col;
+  $('dyn').textContent = dynName(S.level);
+  $('hint').textContent = S.calib ? `play at your level… ${Math.ceil(3 - S.calib.time)}`
+    : S.paused ? 'paused' : { soft: '▲ a bit louder', ok: 'right there', loud: '▼ a bit softer' }[S.zone];
+  $('hint').style.color = S.calib || S.paused ? 'var(--text)' : col;
+  const pct = S.total ? S.inZone / S.total * 100 : 0;
+  $('pct').textContent = pct.toFixed(0) + '%';
+  $('ring').style.background = `conic-gradient(var(--ok) ${pct}%, var(--line) 0)`;
+  $('streak').textContent = S.streak.toFixed(0) + 's'; $('best').textContent = S.best.toFixed(0) + 's';
+  $('target').textContent = `${S.low}–${S.high}`;
+  $('warn').textContent = S.t - S.clipAt < 2 ? 'The mic is maxed out. Move the iPad further from the drums.' : '';
+  document.querySelectorAll('[data-p]').forEach(b =>
+    b.classList.toggle('on', PRESETS[b.dataset.p][0] === S.low && PRESETS[b.dataset.p][1] === S.high));
+  drawHistory();
+}
+
+function drawHistory() {
+  const c = $('spark'), r = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== w * r || c.height !== h * r) { c.width = w * r; c.height = h * r; }
+  const g = c.getContext('2d'); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h);
+  const x = t => w - (S.t - t) / 20 * w, y = l => h - l / 100 * h;
+  g.fillStyle = 'rgba(31,157,85,.2)';                          // the band as it was at each moment
+  for (let i = 1; i < S.hist.length; i++) {
+    const a = S.hist[i - 1], b = S.hist[i];
+    g.fillRect(x(a.t), y(b.hi), x(b.t) - x(a.t) + .5, y(b.lo) - y(b.hi));
+  }
+  g.lineWidth = 3; g.lineCap = 'round';
+  for (let i = 1; i < S.hist.length; i++) {
+    const a = S.hist[i - 1], b = S.hist[i];
+    g.strokeStyle = COLORS[b.z]; g.beginPath(); g.moveTo(x(a.t), y(a.l)); g.lineTo(x(b.t), y(b.l)); g.stroke();
+  }
+}
+</script>
+</body>
+</html>
