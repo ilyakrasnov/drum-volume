@@ -3,9 +3,11 @@ import { type Band, PRESETS } from "@/lib/volume";
 
 const STORAGE_KEY = "drum-volume-v1";
 
-type Settings = { band: Band; sensitivity: number };
+export type Mode = "practice" | "challenge";
 
-const DEFAULTS: Settings = { band: PRESETS.Medium, sensitivity: 6 };
+type Settings = { band: Band; sensitivity: number; mode: Mode; bpm: number; counts: number; click: boolean };
+
+const DEFAULTS: Settings = { band: PRESETS.Medium, sensitivity: 6, mode: "practice", bpm: 90, counts: 8, click: true };
 
 function load(): Settings {
   try {
@@ -15,7 +17,7 @@ function load(): Settings {
   }
 }
 
-/** Target band and mic sensitivity, remembered on this device. */
+/** Target band, mic sensitivity and challenge setup, remembered on this device. */
 export function usePracticeSettings() {
   const [settings, setSettings] = useState(load);
 
@@ -27,9 +29,18 @@ export function usePracticeSettings() {
     }
   }, [settings]);
 
+  const set =
+    <K extends keyof Settings>(key: K) =>
+    (value: Settings[K]) =>
+      setSettings((s) => ({ ...s, [key]: value }));
+
   return {
     ...settings,
-    setBand: (band: Band) => setSettings((s) => ({ ...s, band })),
-    setSensitivity: (sensitivity: number) => setSettings((s) => ({ ...s, sensitivity })),
+    setBand: set("band"),
+    setSensitivity: set("sensitivity"),
+    setMode: set("mode"),
+    setBpm: set("bpm"),
+    setCounts: set("counts"),
+    setClick: set("click"),
   };
 }
