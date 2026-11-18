@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Dark only: it sits next to a drum kit, often in a dim room */
+  :root {
+    --background: 214 19% 7%;
+    --foreground: 210 30% 95%;
+
+    --card: 214 19% 13%;
+    --card-foreground: 210 30% 95%;
+
+    --popover: 214 19% 13%;
+    --popover-foreground: 210 30% 95%;
+
+    --primary: 210 30% 95%;
+    --primary-foreground: 214 19% 7%;
+
+    --secondary: 214 16% 21%;
+    --secondary-foreground: 210 30% 95%;
+
+    --muted: 214 16% 21%;
+    --muted-foreground: 215 10% 59%;
+
+    --accent: 214 16% 21%;
+    --accent-foreground: 210 30% 95%;
+
+    --destructive: 9 74% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 16% 21%;
+    --input: 214 16% 21%;
+    --ring: 210 30% 95%;
+
+    --radius: 0.75rem;
+
+    --surface: 214 19% 13%;
+    --surface-raised: 214 16% 21%;
+
+    --zone-soft: 218 70% 52%;
+    --zone-ok: 145 67% 37%;
+    --zone-loud: 9 74% 52%;
+    --warn: 44 90% 61%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    @apply h-full overflow-hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased select-none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
