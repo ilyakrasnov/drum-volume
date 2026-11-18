@@ -39,7 +39,12 @@ export function useDrumLevel({ band, sensitivity, demo, onCalibrated }: Options)
 
   const live = useRef({ band, sensitivity, paused, onCalibrated });
   live.current = { band, sensitivity, paused, onCalibrated };
-  const audio = useRef<{ ctx: AudioContext; analyser: AnalyserNode; buf: Float32Array<ArrayBuffer> } | null>(null);
+  const audio = useRef<{
+    stream: MediaStream;
+    ctx: AudioContext;
+    analyser: AnalyserNode;
+    buf: Float32Array<ArrayBuffer>;
+  } | null>(null);
   const history = useRef<HistoryPoint[]>([]);
   const scoreRef = useRef<Score>(emptyScore());
   const calibration = useRef<Calibration | null>(null);
@@ -56,7 +61,7 @@ export function useDrumLevel({ band, sensitivity, demo, onCalibrated }: Options)
         analyser.fftSize = 2048;
         ctx.createMediaStreamSource(stream).connect(analyser);
         await ctx.resume();
-        audio.current = { ctx, analyser, buf: new Float32Array(analyser.fftSize) };
+        audio.current = { stream, ctx, analyser, buf: new Float32Array(analyser.fftSize) };
       } catch (err) {
         console.warn(err);
         setError(
@@ -69,6 +74,16 @@ export function useDrumLevel({ band, sensitivity, demo, onCalibrated }: Options)
     }
     setStarted(true);
   }, [demo]);
+
+  /** Turns the mic fully off (the iPad's mic indicator goes away) and returns to the start screen. */
+  const stop = useCallback(() => {
+    const a = audio.current;
+    audio.current = null;
+    a?.stream.getTracks().forEach((track) => track.stop());
+    a?.ctx.close().catch(() => {});
+    calibration.current = null;
+    setStarted(false);
+  }, []);
 
   useEffect(() => {
     if (!started) return;
@@ -125,14 +140,16 @@ export function useDrumLevel({ band, sensitivity, demo, onCalibrated }: Options)
     };
     raf = requestAnimationFrame(tick);
 
-    // iOS suspends audio when he switches apps
-    const onVisible = () => document.visibilityState === "visible" && audio.current?.ctx.resume();
-    document.addEventListener("visibilitychange", onVisible);
+    // never keep listening in the background: leaving the app turns the mic off
+    const onHidden = () => document.visibilityState === "hidden" && stop();
+    document.addEventListener("visibilitychange", onHidden);
     return () => {
       cancelAnimationFrame(raf);
-      document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("visibilitychange", onHidden);
     };
-  }, [started]);
+  }, [started, stop]);
+
+  useEffect(() => stop, [stop]);
 
   const resetScore = useCallback(() => {
     scoreRef.current = emptyScore();
@@ -146,6 +163,7 @@ export function useDrumLevel({ band, sensitivity, demo, onCalibrated }: Options)
     started,
     error,
     start,
+    stop,
     ...frame,
     clippedRecently: frame.t - frame.clippedAt < 2,
     score,

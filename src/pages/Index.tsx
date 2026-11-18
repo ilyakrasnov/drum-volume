@@ -1,3 +1,4 @@
+import { MicOff } from "lucide-react";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import BandControls from "@/components/BandControls";
@@ -8,6 +9,7 @@ import LevelReadout from "@/components/LevelReadout";
 import ModeSwitch from "@/components/ModeSwitch";
 import SessionControls from "@/components/SessionControls";
 import StartScreen from "@/components/StartScreen";
+import { Button } from "@/components/ui/button";
 import VolumeMeter from "@/components/VolumeMeter";
 import ZoneStats from "@/components/ZoneStats";
 import { useChallenge } from "@/hooks/use-challenge";
@@ -39,6 +41,12 @@ const Index = () => {
 
   useEffect(() => challenge.record(drum.zone));
 
+  // no mic, no challenge: also silences the click when the app goes to the background
+  const { stop: stopChallenge } = challenge;
+  useEffect(() => {
+    if (!drum.started) stopChallenge();
+  }, [drum.started, stopChallenge]);
+
   const switchMode = (mode: Mode) => {
     challenge.stop();
     settings.setMode(mode);
@@ -54,7 +62,13 @@ const Index = () => {
         onBandChange={challenge.running ? () => {} : settings.setBand}
       />
       <div className="flex min-h-0 min-w-0 flex-col gap-[2dvh] overflow-y-auto">
-        <ModeSwitch mode={settings.mode} onChange={switchMode} />
+        <div className="flex items-center justify-between gap-2">
+          <ModeSwitch mode={settings.mode} onChange={switchMode} />
+          <Button variant="outline" className="text-sm" onClick={drum.stop}>
+            <MicOff />
+            Stop listening
+          </Button>
+        </div>
         <LevelReadout level={drum.level} zone={drum.zone} paused={drum.paused} calibrateLeft={drum.calibrateLeft} />
         {settings.mode === "practice" ? (
           <>
